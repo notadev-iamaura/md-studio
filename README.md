@@ -107,9 +107,29 @@ Safari에서도 편집, 미리보기, 복사, 내보내기는 모두 동작합�
 3. **Google Docs, Word, Gmail에 서식 복사를 붙여넣은 결과.**
 4. **한글 입력기(IME)로 직접 타이핑.** 자동 테스트는 글자를 직접 주입하는 방식이라, 자음과 모음이 조합되는 과정은 확인하지 못했습니다.
 
-## 다음 계획: Swift 순수 앱
+## Swift 순수 앱 (새 버전, `macos/`)
 
-메모리를 줄이기 위해 브라우저 엔진 없는 맥 순수 앱(Swift)으로 전환할 예정입니다. 목표, 기능 명세, 진행 단계는 [docs/SWIFT_PLAN.md](docs/SWIFT_PLAN.md)에 정리되어 있습니다.
+브라우저 엔진 없이 맥 기본 부품(AppKit)으로 다시 만든 버전입니다. 기능은 위의 맥 앱과 같고, 훨씬 가볍습니다. 계획과 기준은 [docs/SWIFT_PLAN.md](docs/SWIFT_PLAN.md)에 있습니다.
+
+| 항목 | Electron 버전 | Swift 버전 (실측) |
+|---|---|---|
+| 앱 크기 | 310MB | 6.4MB (Apple Silicon·Intel 공용) |
+| 메모리 (예제 문서 1개, 분할 보기) | 150~300MB (추정) | 45MB (`footprint` 명령, 최고 45.7MB) |
+
+**만들기와 설치**
+1. Xcode가 설치되어 있어야 합니다. 저장소 폴더에서 `bash macos/scripts/build-app.sh`를 실행합니다.
+2. `macos/build/MD Studio.app`이 생깁니다. 응용 프로그램 폴더로 옮기면 됩니다. 이 맥에서 직접 만든 앱이라 "확인되지 않은 개발자" 경고가 뜨지 않습니다. 다른 맥으로 보낼 때는 `macos/build/MD-Studio-2.0.0-mac.zip`을 쓰고, 받는 쪽은 위의 "그래도 열기" 순서를 따릅니다.
+3. Electron 버전과 따로 설치됩니다(앱 식별자 `local.mdstudio.native`). 설정과 임시본도 따로 보관합니다.
+
+**자동 확인**: `bash macos/scripts/build-app.sh --selftest`를 실행하면 앱을 만든 뒤 실제 창을 띄워 24개 흐름(폴더 열기, 저장, 자동 저장, 임시본 복구, 외부 변경, 복사 4종, 붙여넣기 변환, HTML·PDF 내보내기, 단축키, 다크 모드, 긴 문서 등)을 사람 없이 실행합니다. 결과와 화면 사진은 `macos/build/selftest/`에 남습니다. 점검하는 동안 앱 창이 30초쯤 떴다가 닫힙니다.
+
+**Electron 버전과 다른 점**
+- 미리보기는 브라우저가 아니라 맥 글자 엔진으로 그립니다. 디자인은 같은 색과 크기를 쓰지만 줄 간격 등은 조금 다를 수 있습니다.
+- 인터넷 주소의 이미지는 미리보기에서 내려받지 않고 "[이미지: 설명]" 링크로 보여 줍니다(내 맥의 이미지 파일은 그림으로 보입니다).
+- 마크다운 안에 직접 쓴 HTML 태그는 서식 복사·보고서에서 글자만 남깁니다(웹 버전은 일부 태그를 살렸습니다).
+- 서식 복사에 RTF도 함께 넣어 Pages·Word 붙여넣기가 더 잘 됩니다.
+- "서식" 메뉴가 추가되었고, 보고서 미리보기는 기본 브라우저로 엽니다.
+- 로그는 `~/Library/Logs/MD Studio/app.log`에 남습니다.
 
 ## 개발자용
 
@@ -124,6 +144,8 @@ npm run e2e:app    # 데스크톱 앱 테스트 (맥은 앱 창이 잠깐 떴다
 npm run package:app  # 맥 앱 생성 → release/MD-Studio-<버전>-mac-*.zip (서명·검증까지 자동)
 node test/make-golden.mjs  # 변환 정답 데이터 갱신 (다른 언어 구현과 대조용)
 cd macos/MDCore && swift test  # Swift 변환 엔진을 정답 데이터와 대조 (Xcode 필요)
+cd macos/MDStudio && swift test  # Swift 앱 기능 단위 테스트
+bash macos/scripts/build-app.sh --selftest  # Swift 앱 만들기 + 실제 창 자동 점검
 ```
 
 구조:
@@ -136,5 +158,6 @@ cd macos/MDCore && swift test  # Swift 변환 엔진을 정답 데이터와 대�
 - `build.mjs`: 모든 코드와 스타일을 HTML 파일 하나로 묶습니다.
 - `electron/main.cjs`: 데스크톱 앱의 메인 프로그램입니다. 파일·폴더·클립보드·PDF·메뉴를 담당하고, 사용자가 고른 경로 밖은 거부합니다.
 - `electron/preload.cjs`: 화면이 쓸 수 있는 앱 기능 목록입니다(`window.mdNative`).
+- `macos/MDStudio/`: Swift 맥 앱입니다. `MDStudioKit`(화면·파일·클립보드·PDF 등 모든 기능)과 실행 파일 `MDStudio`로 나뉩니다. `macos/scripts/build-app.sh`가 `.app`으로 묶고 자체 서명합니다.
 - `macos/MDCore/`: Swift 버전의 변환 엔진(Swift Package)입니다. `src/convert.js`와 같은 결과를 내며, `swift test`로 `test/fixtures/golden.json`과 대조합니다.
 - `mac/`: 앱 아이콘(`icon.svg`, `AppIcon.icns`)과 자체 서명·압축 스크립트(`adhoc-sign.sh`)입니다.

@@ -5,3 +5,5 @@ mac/electron-zips/
 dist/
 macos/**/.build/
 macos/**/.swiftpm/
+macos/build/
+macos/build.build.log

@@ -35,9 +35,9 @@ enum MDLog {
     /// 이보다 오래 걸린 변환은 느린 변환으로 기록한다(밀리초).
     static let slowThresholdMs = 80.0
 
-    static func measure<T>(_ kind: String, inputLength: Int, _ work: () -> T) -> T {
+    static func measure<T>(_ kind: String, inputLength: Int, _ work: () throws -> T) rethrows -> T {
         let start = DispatchTime.now().uptimeNanoseconds
-        let result = work()
+        let result = try work()
         let ms = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
         if ms > slowThresholdMs {
             core.notice("느린 변환: \(kind, privacy: .public) 입력 \(inputLength)바이트, \(ms, format: .fixed(precision: 1))ms")

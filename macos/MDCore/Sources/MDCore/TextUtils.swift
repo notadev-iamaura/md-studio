@@ -155,3 +155,13 @@ enum TextUtils {
         return String(scalars)
     }
 }
+
+/// 앱에서도 쓰는 글자 도구 (변환 규칙과 똑같은 판단을 하도록 같은 구현을 공개한다)
+public enum MDText {
+    /// HTML 태그를 지우고 글자만 남긴다. `<br>`은 줄바꿈.
+    public static func stripTags(_ html: String) -> String { TextUtils.stripTags(html) }
+    /// `<br>` 하나뿐인지
+    public static func isBrHtml(_ raw: String) -> Bool { TextUtils.isBrHtml(raw) }
+    /// 위험한 링크(javascript: 등)면 빈 문자열
+    public static func safeHref(_ href: String?) -> String { TextUtils.safeHref(href) }
+}

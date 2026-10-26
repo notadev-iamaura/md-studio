@@ -8,7 +8,7 @@ import Foundation
 import Markdown
 
 /// 한 줄 안의 서식 조각.
-indirect enum Inline: Equatable {
+public indirect enum Inline: Equatable, Sendable {
     case text(String)
     case strong([Inline])
     case emphasis([Inline])
@@ -21,20 +21,27 @@ indirect enum Inline: Equatable {
     case html(String)
 }
 
-/// 할 일 목록의 체크 상태. 할 일이 아니면 nil.
-struct ListItemNode: Equatable {
-    var checked: Bool?
-    var children: [Block]
+/// 목록 항목. checked는 할 일 목록의 체크 상태이고, 할 일이 아니면 nil.
+public struct ListItemNode: Equatable, Sendable {
+    public var checked: Bool?
+    public var children: [Block]
+}
+
+/// 표 열 정렬
+public enum TableAlignment: String, Equatable, Sendable {
+    case left, center, right
 }
 
 /// 표. 행의 칸 수가 머리글보다 적을 수 있어 칸은 Optional로 둔다.
-struct TableNode: Equatable {
-    var header: [[Inline]]
-    var rows: [[[Inline]?]]
+public struct TableNode: Equatable, Sendable {
+    public var header: [[Inline]]
+    public var rows: [[[Inline]?]]
+    /// 열마다의 정렬. 지정하지 않은 열은 nil.
+    public var alignments: [TableAlignment?] = []
 }
 
 /// 문단, 제목, 목록 같은 덩어리.
-indirect enum Block: Equatable {
+public indirect enum Block: Equatable, Sendable {
     case heading(level: Int, content: [Inline])
     case paragraph([Inline])
     case list(ordered: Bool, start: Int, items: [ListItemNode])
@@ -44,7 +51,7 @@ indirect enum Block: Equatable {
     case thematicBreak
     case html(String)
 
-    var isHeading: Bool {
+    public var isHeading: Bool {
         if case .heading = self { return true }
         return false
     }
@@ -109,7 +116,15 @@ enum MarkdownTree {
         let rows: [[[Inline]?]] = Array(table.body.rows.map { row in
             Array(row.cells.map { Optional(inlines($0.children)) })
         })
-        return TableNode(header: header, rows: rows)
+        let alignments: [TableAlignment?] = table.columnAlignments.map { a in
+            switch a {
+            case .left?: return .left
+            case .center?: return .center
+            case .right?: return .right
+            case nil: return nil
+            }
+        }
+        return TableNode(header: header, rows: rows, alignments: alignments)
     }
 
     /// cmark는 코드 블록 끝에 줄바꿈을 하나 붙여 준다. marked는 붙이지 않으므로 하나만 뗀다.
