@@ -12,8 +12,9 @@
 - 로그를 적극적으로 남기되 문서 본문은 기록하지 않습니다.
 
 ## 명령
-- `npm install`: 의존성 설치
-- `npm test`: 변환 로직 테스트 / `npm run e2e`: 화면 테스트 / `npm run e2e:app`: Electron 앱 테스트
+- `npm install`: 의존성 설치. 화면 테스트 전에 처음 한 번 `npx playwright install chromium-headless-shell`
+  - npm이 설치 스크립트를 막아도 Electron 실행 파일은 `npm run app`이나 `npm run e2e:app`을 처음 실행할 때 자동으로 받아진다
+- `npm test`: 변환 로직 테스트 / `npm run e2e`: 화면 테스트 / `npm run e2e:app`: Electron 앱 테스트(맥·리눅스 모두, `test/run-app-e2e.mjs`가 운영체제에 맞게 실행)
 - `npm run app`: Electron 앱 실행 / `npm run package:app`: 맥 앱 패키징(서명·검증 포함)
 - `node test/make-golden.mjs`: 변환 정답 데이터(`test/fixtures/golden.json`) 갱신. 변환 규칙을 바꿨을 때만 실행
 - `cd macos/MDCore && swift test`: Swift 변환 엔진 정답 대조(21개 사례 × 8종). `MDCORE_GOLDEN=<경로>`를 주면 다른 정답 파일로 대조

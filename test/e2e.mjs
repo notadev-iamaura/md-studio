@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
-// 환경에 미리 설치된 Playwright를 쓴다 (ESM은 NODE_PATH를 보지 않으므로 require로 불러온다)
+// Playwright(devDependencies)를 쓴다. 처음 한 번은 `npx playwright install chromium`으로 브라우저를 받아야 한다
 const { chromium } = createRequire(import.meta.url)('playwright');
 const DIST = path.resolve('dist/MD-Studio.html');
 const SHOTS = path.resolve('test/screenshots');

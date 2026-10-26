@@ -8,7 +8,7 @@
     "build": "node build.mjs",
     "e2e": "node test/e2e.mjs",
     "app": "npm run build && electron .",
-    "e2e:app": "npm run build && xvfb-run -a node test/app-e2e.mjs",
+    "e2e:app": "npm run build && node test/run-app-e2e.mjs",
     "package:app": "npm run build && electron-builder --mac --publish never && bash mac/adhoc-sign.sh"
   },
   "keywords": [],
@@ -27,6 +27,7 @@
     "electron-builder": "^26.17.0",
     "esbuild": "^0.25.10",
     "marked": "^16.4.1",
+    "playwright": "^1.64.1",
     "turndown": "^7.2.1",
     "turndown-plugin-gfm": "^1.0.2"
   },

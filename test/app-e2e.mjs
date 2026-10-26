@@ -1,11 +1,16 @@
 // 데스크톱 앱(Electron) 검증: 실제 앱을 실행해 맥 기능 연결 부분(파일, 폴더, 클립보드, PDF, 메뉴, 재시작)을 확인한다.
-// 리눅스에서 실행하며, 맥의 선택 창(dialog)만 정해진 경로를 돌려주도록 바꿔 둔다.
+// 맥과 리눅스에서 실행한다(리눅스는 test/run-app-e2e.mjs가 가상 화면 xvfb로 감싼다).
+// 맥의 선택 창(dialog)만 정해진 경로를 돌려주도록 바꿔 둔다.
 import { createRequire } from 'node:module';
 import { mkdtemp, writeFile, readFile, mkdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 
-const { _electron: electron } = createRequire(import.meta.url)('playwright');
+const require = createRequire(import.meta.url);
+const { _electron: electron } = require('playwright');
+// electron 패키지는 운영체제에 맞는 실행 파일 경로를 돌려준다(맥: Electron.app/Contents/MacOS/Electron).
+// 실행 파일이 아직 없으면 이 시점에 내려받는다.
+const ELECTRON_PATH = require('electron');
 const ROOT = path.resolve('.');
 const SHOTS = path.resolve('test/screenshots');
 await mkdir(SHOTS, { recursive: true });
@@ -43,7 +48,7 @@ let page;
 const pageErrors = [];
 async function launch() {
   app = await electron.launch({
-    executablePath: path.join(ROOT, 'node_modules/electron/dist/electron'),
+    executablePath: ELECTRON_PATH,
     args: [ROOT, '--no-sandbox', `--user-data-dir=${userData}`],
     env: { ...process.env, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' },
   });

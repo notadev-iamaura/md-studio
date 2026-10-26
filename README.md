@@ -115,11 +115,12 @@ Safari에서도 편집, 미리보기, 복사, 내보내기는 모두 동작합�
 
 ```
 npm install        # 의존성 설치
+npx playwright install chromium-headless-shell  # 화면 테스트용 브라우저 (처음 한 번)
 npm run build      # dist/MD-Studio.html 생성
 npm test           # 변환 로직 단위 테스트
 npm run e2e        # 실제 브라우저 테스트 (Playwright, 스크린샷은 test/screenshots/)
 npm run app        # 데스크톱 앱으로 실행 (개발용)
-npm run e2e:app    # 데스크톱 앱 테스트 (Linux는 xvfb 필요)
+npm run e2e:app    # 데스크톱 앱 테스트 (맥은 앱 창이 잠깐 떴다 닫힘, Linux는 xvfb 필요)
 npm run package:app  # 맥 앱 생성 → release/MD-Studio-<버전>-mac-*.zip (서명·검증까지 자동)
 node test/make-golden.mjs  # 변환 정답 데이터 갱신 (다른 언어 구현과 대조용)
 cd macos/MDCore && swift test  # Swift 변환 엔진을 정답 데이터와 대조 (Xcode 필요)
