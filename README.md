@@ -107,6 +107,10 @@ Safari에서도 편집, 미리보기, 복사, 내보내기는 모두 동작합�
 3. **Google Docs, Word, Gmail에 서식 복사를 붙여넣은 결과.**
 4. **한글 입력기(IME)로 직접 타이핑.** 자동 테스트는 글자를 직접 주입하는 방식이라, 자음과 모음이 조합되는 과정은 확인하지 못했습니다.
 
+## 다음 계획: Swift 순수 앱
+
+메모리를 줄이기 위해 브라우저 엔진 없는 맥 순수 앱(Swift)으로 전환할 예정입니다. 목표, 기능 명세, 진행 단계는 [docs/SWIFT_PLAN.md](docs/SWIFT_PLAN.md)에 정리되어 있습니다.
+
 ## 개발자용
 
 ```
@@ -117,6 +121,7 @@ npm run e2e        # 실제 브라우저 테스트 (Playwright, 스크린샷은 
 npm run app        # 데스크톱 앱으로 실행 (개발용)
 npm run e2e:app    # 데스크톱 앱 테스트 (Linux는 xvfb 필요)
 npm run package:app  # 맥 앱 생성 → release/MD-Studio-<버전>-mac-*.zip (서명·검증까지 자동)
+node test/make-golden.mjs  # 변환 정답 데이터 갱신 (다른 언어 구현과 대조용)
 ```
 
 구조:
