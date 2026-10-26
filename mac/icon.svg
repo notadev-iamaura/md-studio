@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <!-- macOS 아이콘 규격: 1024 캔버스 안 824 크기의 둥근 사각형 -->
+  <rect x="100" y="90" width="824" height="824" rx="185" fill="url(#bg)" filter="url(#sh)"/>
+  <!-- 문서 -->
+  <path d="M300 230h300l124 124v410a30 30 0 0 1-30 30H300a30 30 0 0 1-30-30V260a30 30 0 0 1 30-30z" fill="#fff"/>
+  <path d="M600 230v94a30 30 0 0 0 30 30h94z" fill="#c7d7fb"/>
+  <!-- M↓ 마크다운 기호 -->
+  <path d="M340 690V470h52l58 78 58-78h52v220h-56V560l-54 70-54-70v130z" fill="#1d4ed8"/>
+  <path d="M630 470h56v120h44l-72 100-72-100h44z" fill="#1d4ed8"/>
+</svg>

@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="ko" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MD Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f6feb'/%3E%3Cpath d='M7 22V10h3l3 4 3-4h3v12h-3v-7l-3 4-3-4v7zm17 0-4-5h2.5v-7h3v7H28z' fill='%23fff'/%3E%3C/svg%3E">
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="app" id="app" data-view="split">
+  <header class="topbar">
+    <button class="icon-btn" id="btn-sidebar" title="파일 목록 열고 닫기" aria-label="파일 목록">
+      <svg viewBox="0 0 20 20" width="18" height="18"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
+    <div class="brand">MD Studio</div>
+    <div class="file-info" title="현재 문서">
+      <span id="file-name">새 문서</span>
+      <span id="dirty-dot" class="dirty-dot" hidden title="저장하지 않은 변경 사항"></span>
+    </div>
+
+    <div class="group">
+      <button class="btn" data-action="new" title="새 문서">새 문서</button>
+      <button class="btn" data-action="open" title="파일 열기 (⌘O)">열기</button>
+      <button class="btn" data-action="save" title="저장 (⌘S)">저장</button>
+      <button class="btn" data-action="saveAs" title="다른 이름으로 저장">다른 이름</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="segmented" role="tablist" aria-label="화면 보기">
+      <button data-view-btn="edit" title="편집만 보기">편집</button>
+      <button data-view-btn="split" title="편집과 미리보기 나란히 (⌘\)">분할</button>
+      <button data-view-btn="preview" title="미리보기만 보기">보기</button>
+    </div>
+
+    <div class="group copy-group">
+      <button class="btn primary" data-action="copySlack" title="Slack에 붙여넣기 좋게 복사 (표는 목록으로 풀어서)">Slack 복사</button>
+      <button class="btn" data-action="copyRich" title="Google Docs, Word, 메일에 서식 그대로 붙여넣기">서식 복사</button>
+      <button class="btn" data-action="copyPlain" title="서식 없이 깔끔한 텍스트로 복사">텍스트 복사</button>
+      <button class="btn" data-action="copyMd" title="마크다운 원문 복사">MD 복사</button>
+    </div>
+
+    <div class="menu-wrap">
+      <button class="btn" id="btn-export" aria-haspopup="true" aria-expanded="false">내보내기 ▾</button>
+      <div class="menu" id="menu-export" hidden>
+        <button data-action="exportHtml">HTML 보고서로 저장</button>
+        <button data-action="exportPdf">PDF로 저장 (인쇄 창)</button>
+        <button data-action="downloadMd">마크다운 파일 다운로드</button>
+      </div>
+    </div>
+    <button class="icon-btn" data-action="settings" title="설정" aria-label="설정">
+      <svg viewBox="0 0 20 20" width="18" height="18"><path d="M10 12.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16.2 11.9l1.3 1-1.6 2.8-1.6-.6a6.4 6.4 0 0 1-1.7 1l-.3 1.6H9.1l-.3-1.6a6.4 6.4 0 0 1-1.7-1l-1.6.6-1.6-2.8 1.3-1a6.6 6.6 0 0 1 0-2l-1.3-1L5.5 5l1.6.6a6.4 6.4 0 0 1 1.7-1l.3-1.6h3.2l.3 1.6a6.4 6.4 0 0 1 1.7 1L15.9 5l1.6 2.8-1.3 1a6.6 6.6 0 0 1 0 2Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="icon-btn" data-action="help" title="사용법과 단축키 (⌘/)" aria-label="도움말">?</button>
+  </header>
+
+  <div class="main">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="folder-name" id="folder-name">폴더 없음</div>
+        <button class="icon-btn small" data-action="newInFolder" id="btn-new-in-folder" title="이 폴더에 새 파일" hidden>＋</button>
+        <button class="icon-btn small" data-action="refreshFolder" id="btn-refresh" title="목록 새로고침" hidden>↻</button>
+      </div>
+      <input class="filter" id="file-filter" type="search" placeholder="파일 이름 검색" hidden>
+      <ul class="file-list" id="file-list"></ul>
+      <div class="sidebar-empty" id="sidebar-empty">
+        <p>내 맥의 폴더를 열면 그 안의 마크다운 파일을 바로 열고 저장할 수 있습니다.</p>
+        <button class="btn primary block" data-action="openFolder">폴더 열기</button>
+        <button class="btn block" data-action="reconnectFolder" id="btn-reconnect" hidden>지난 폴더 다시 열기</button>
+        <p class="hint" id="fs-unsupported" hidden>이 브라우저는 폴더 직접 저장을 지원하지 않습니다. Chrome, Arc, Edge에서 열면 사용할 수 있습니다. 지금은 열기/다운로드 방식으로 저장됩니다.</p>
+      </div>
+      <div class="sidebar-foot" id="sidebar-foot" hidden>
+        <button class="link-btn" data-action="openFolder">다른 폴더 열기</button>
+        <button class="link-btn" data-action="closeFolder">폴더 닫기</button>
+      </div>
+    </aside>
+
+    <section class="pane editor-pane" id="editor-pane">
+      <div class="toolbar" role="toolbar" aria-label="서식">
+        <button data-cmd="h1" title="제목 1 (⌘⌥1)">H1</button>
+        <button data-cmd="h2" title="제목 2 (⌘⌥2)">H2</button>
+        <button data-cmd="h3" title="제목 3 (⌘⌥3)">H3</button>
+        <span class="sep"></span>
+        <button data-cmd="bold" title="굵게 (⌘B)"><b>B</b></button>
+        <button data-cmd="italic" title="기울임 (⌘I)"><i>I</i></button>
+        <button data-cmd="strike" title="취소선 (⌘⇧X)"><s>S</s></button>
+        <button data-cmd="code" title="인라인 코드 (⌘E)"><code>&lt;/&gt;</code></button>
+        <button data-cmd="link" title="링크 (⌘K)">링크</button>
+        <span class="sep"></span>
+        <button data-cmd="ul" title="글머리 목록 (⌘⇧8)">• 목록</button>
+        <button data-cmd="ol" title="번호 목록 (⌘⇧7)">1. 목록</button>
+        <button data-cmd="task" title="할 일 목록">☐ 할 일</button>
+        <button data-cmd="quote" title="인용">❝ 인용</button>
+        <span class="sep"></span>
+        <button data-cmd="codeBlock" title="코드 블록">코드 블록</button>
+        <button data-cmd="table" title="표 넣기">표</button>
+        <button data-cmd="hr" title="구분선">―</button>
+      </div>
+      <div class="editor" id="editor"></div>
+    </section>
+
+    <section class="pane preview-pane" id="preview-pane">
+      <div class="preview-tabs" role="tablist" aria-label="미리보기 종류">
+        <button data-tab="doc" class="active" title="문서로 보기">문서</button>
+        <button data-tab="slack" title="Slack에 붙였을 때 모습">Slack 미리보기</button>
+        <button data-tab="plain" title="텍스트 복사 결과">텍스트 미리보기</button>
+        <div class="spacer"></div>
+        <label class="table-mode" title="Slack/텍스트로 바꿀 때 표를 어떻게 풀지">
+          표 변환
+          <select id="table-mode">
+            <option value="title">제목형</option>
+            <option value="inline">한 줄형</option>
+            <option value="grid">고정폭 표</option>
+          </select>
+        </label>
+      </div>
+      <div class="preview-scroll" id="preview-scroll">
+        <article class="md-body" id="preview-doc"></article>
+        <div class="slack-mock" id="preview-slack" hidden>
+          <div class="slack-msg">
+            <div class="slack-avatar">나</div>
+            <div class="slack-body">
+              <div class="slack-meta"><b>나</b><span>오늘</span></div>
+              <div class="slack-content" id="slack-content"></div>
+            </div>
+          </div>
+          <p class="hint">Slack 입력창에 붙여넣었을 때의 예상 모습입니다. 실제 Slack은 버전에 따라 줄 간격이 조금 다를 수 있습니다.</p>
+        </div>
+        <pre class="plain-out" id="preview-plain" hidden></pre>
+      </div>
+    </section>
+  </div>
+
+  <footer class="statusbar">
+    <span id="st-stats">0자</span>
+    <span id="st-save">저장됨</span>
+    <span id="st-storage"></span>
+    <span class="spacer"></span>
+    <button class="link-btn" data-action="logs" id="st-log" title="로그 보기">로그</button>
+  </footer>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<dialog id="dlg-confirm" class="dlg">
+  <form method="dialog">
+    <h3 id="confirm-title">저장하지 않은 변경 사항</h3>
+    <p id="confirm-msg"></p>
+    <div class="dlg-actions">
+      <button value="cancel" class="btn">취소</button>
+      <button value="discard" class="btn danger">저장 안 함</button>
+      <button value="save" class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-name" class="dlg">
+  <form method="dialog">
+    <h3>파일 이름</h3>
+    <p class="hint" id="name-hint">열린 폴더에 저장합니다.</p>
+    <input id="name-input" type="text" autocomplete="off" spellcheck="false">
+    <div class="dlg-actions">
+      <button value="cancel" class="btn">취소</button>
+      <button value="ok" class="btn primary">확인</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-export" class="dlg">
+  <form method="dialog">
+    <h3 id="export-title">HTML 보고서</h3>
+    <label class="field">보고서 제목<input id="export-name" type="text"></label>
+    <label class="check"><input id="export-toc" type="checkbox" checked> 목차 넣기 (소제목이 3개 이상일 때)</label>
+    <label class="check"><input id="export-date" type="checkbox" checked> 작성 날짜 넣기</label>
+    <div class="dlg-actions">
+      <button value="cancel" class="btn">취소</button>
+      <button value="preview" class="btn">새 창으로 미리보기</button>
+      <button value="ok" class="btn primary" id="export-ok">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-settings" class="dlg wide">
+  <form method="dialog">
+    <h3>설정</h3>
+    <div class="settings-grid">
+      <label>표 변환 방식
+        <select data-setting="tableMode">
+          <option value="title">제목형: 첫 열을 제목, 나머지를 하위 항목으로</option>
+          <option value="inline">한 줄형: 한 행을 한 줄로</option>
+          <option value="grid">고정폭 표: 표 모양 유지 (코드 블록)</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" data-setting="breaks"> 엔터 한 번을 줄바꿈으로 인식</label>
+      <label class="check"><input type="checkbox" data-setting="pasteConvert"> 웹/문서에서 붙여넣으면 마크다운으로 변환</label>
+      <label class="check"><input type="checkbox" data-setting="autosave"> 열린 파일에 자동 저장</label>
+      <label class="check"><input type="checkbox" data-setting="syncScroll"> 편집기와 미리보기 스크롤 맞추기</label>
+      <label class="check"><input type="checkbox" data-setting="lineWrap"> 긴 줄 자동 줄바꿈</label>
+      <label>편집기 글꼴
+        <select data-setting="editorFont">
+          <option value="sans">일반 글꼴</option>
+          <option value="mono">고정폭 글꼴</option>
+        </select>
+      </label>
+      <label>편집기 글자 크기
+        <select data-setting="editorFontSize">
+          <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+          <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="20">20</option>
+        </select>
+      </label>
+      <label>화면 테마
+        <select data-setting="theme">
+          <option value="system">시스템 설정 따르기</option>
+          <option value="light">밝게</option>
+          <option value="dark">어둡게</option>
+        </select>
+      </label>
+    </div>
+    <div class="dlg-actions">
+      <button value="close" class="btn primary">닫기</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-log" class="dlg wide">
+  <form method="dialog">
+    <h3>로그</h3>
+    <p class="hint">문제가 생기면 "로그 복사"를 눌러 내용을 전달해 주세요. 문서 내용은 기록하지 않습니다.</p>
+    <div class="log-filter">
+      <label class="check"><input type="checkbox" id="log-debug"> 상세(debug) 로그도 보기</label>
+    </div>
+    <ol class="log-list" id="log-list"></ol>
+    <div class="dlg-actions">
+      <button type="button" class="btn" id="log-clear">비우기</button>
+      <button type="button" class="btn" id="log-copy">로그 복사</button>
+      <button value="close" class="btn primary">닫기</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-help" class="dlg wide">
+  <form method="dialog">
+    <h3>사용법</h3>
+    <div class="help">
+      <h4>복사 버튼</h4>
+      <ul>
+        <li><b>Slack 복사</b>: 굵게, 링크, 목록은 살리고 표는 목록으로 풀어서 복사합니다. 메신저나 메모장처럼 서식을 못 받는 곳에는 깔끔한 텍스트로 들어갑니다.</li>
+        <li><b>서식 복사</b>: Google Docs, Word, Gmail, Notion에 표와 제목까지 그대로 붙여넣습니다.</li>
+        <li><b>텍스트 복사</b>: 서식 없이 •, ◦ 같은 기호로 구조를 표현한 텍스트입니다.</li>
+        <li><b>MD 복사</b>: 마크다운 원문입니다.</li>
+        <li>편집기에서 일부를 선택한 채로 누르면 선택한 부분만 복사합니다.</li>
+      </ul>
+      <h4>저장</h4>
+      <ul>
+        <li>왼쪽 "폴더 열기"로 내 맥의 폴더를 고르면, 그 폴더의 .md 파일을 직접 열고 저장합니다. 서버로 전송되는 내용은 없습니다.</li>
+        <li>작성 중인 내용은 브라우저에도 임시로 보관되어, 창이 갑자기 닫혀도 다시 열면 복구됩니다.</li>
+        <li>.md 파일을 창에 끌어다 놓아도 열립니다.</li>
+      </ul>
+      <h4>단축키</h4>
+      <table class="keys">
+        <tr><td>⌘S</td><td>저장</td><td>⌘O</td><td>열기</td></tr>
+        <tr><td>⌘B</td><td>굵게</td><td>⌘I</td><td>기울임</td></tr>
+        <tr><td>⌘K</td><td>링크</td><td>⌘E</td><td>인라인 코드</td></tr>
+        <tr><td>⌘⌥1~3</td><td>제목 1~3</td><td>⌘⇧X</td><td>취소선</td></tr>
+        <tr><td>⌘⇧8</td><td>글머리 목록</td><td>⌘⇧7</td><td>번호 목록</td></tr>
+        <tr><td>⌘F</td><td>찾기/바꾸기</td><td>⌘\</td><td>보기 전환</td></tr>
+        <tr><td>Tab</td><td>목록 들여쓰기</td><td>⌘Z</td><td>실행 취소</td></tr>
+      </table>
+    </div>
+    <div class="dlg-actions">
+      <button type="button" class="btn" data-action="loadSample">예제 문서 불러오기</button>
+      <button value="close" class="btn primary">닫기</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="drop-overlay" id="drop-overlay" hidden>여기에 놓으면 파일을 엽니다</div>
+
+<script>/*__JS__*/</script>
+</body>
+</html>

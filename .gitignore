@@ -1,0 +1,5 @@
+node_modules/
+test/screenshots/
+release/
+mac/electron-zips/
+dist/
