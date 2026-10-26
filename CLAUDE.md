@@ -16,6 +16,7 @@
 - `npm test`: 변환 로직 테스트 / `npm run e2e`: 화면 테스트 / `npm run e2e:app`: Electron 앱 테스트
 - `npm run app`: Electron 앱 실행 / `npm run package:app`: 맥 앱 패키징(서명·검증 포함)
 - `node test/make-golden.mjs`: 변환 정답 데이터(`test/fixtures/golden.json`) 갱신. 변환 규칙을 바꿨을 때만 실행
+- `cd macos/MDCore && swift test`: Swift 변환 엔진 정답 대조(21개 사례 × 8종). `MDCORE_GOLDEN=<경로>`를 주면 다른 정답 파일로 대조
 
 ## 규칙
 - 변환 규칙의 기준은 `src/convert.js`와 `test/fixtures/golden.json`입니다. Swift 결과가 다르면 정답을 고치지 말고 사용자에게 보고합니다.

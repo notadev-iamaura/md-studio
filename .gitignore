@@ -3,3 +3,5 @@ test/screenshots/
 release/
 mac/electron-zips/
 dist/
+macos/**/.build/
+macos/**/.swiftpm/

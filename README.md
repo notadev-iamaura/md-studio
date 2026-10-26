@@ -122,6 +122,7 @@ npm run app        # 데스크톱 앱으로 실행 (개발용)
 npm run e2e:app    # 데스크톱 앱 테스트 (Linux는 xvfb 필요)
 npm run package:app  # 맥 앱 생성 → release/MD-Studio-<버전>-mac-*.zip (서명·검증까지 자동)
 node test/make-golden.mjs  # 변환 정답 데이터 갱신 (다른 언어 구현과 대조용)
+cd macos/MDCore && swift test  # Swift 변환 엔진을 정답 데이터와 대조 (Xcode 필요)
 ```
 
 구조:
@@ -134,4 +135,5 @@ node test/make-golden.mjs  # 변환 정답 데이터 갱신 (다른 언어 구�
 - `build.mjs`: 모든 코드와 스타일을 HTML 파일 하나로 묶습니다.
 - `electron/main.cjs`: 데스크톱 앱의 메인 프로그램입니다. 파일·폴더·클립보드·PDF·메뉴를 담당하고, 사용자가 고른 경로 밖은 거부합니다.
 - `electron/preload.cjs`: 화면이 쓸 수 있는 앱 기능 목록입니다(`window.mdNative`).
+- `macos/MDCore/`: Swift 버전의 변환 엔진(Swift Package)입니다. `src/convert.js`와 같은 결과를 내며, `swift test`로 `test/fixtures/golden.json`과 대조합니다.
 - `mac/`: 앱 아이콘(`icon.svg`, `AppIcon.icns`)과 자체 서명·압축 스크립트(`adhoc-sign.sh`)입니다.
