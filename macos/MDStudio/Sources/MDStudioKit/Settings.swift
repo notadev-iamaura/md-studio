@@ -49,6 +49,8 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var welcomed = false
     /// 확대·축소 배율 (⌘+ / ⌘-)
     public var zoom = 1.0
+    /// 분할 보기에서 편집기가 차지하는 폭 비율 (경계를 끌어 바꾼다)
+    public var splitRatio = 0.5
 
     public init() {}
 
@@ -78,8 +80,10 @@ public struct AppSettings: Codable, Equatable, Sendable {
         lastFile = (try? c.decodeIfPresent(String.self, forKey: .lastFile)).flatMap { $0 }
         welcomed = (try? c.decodeIfPresent(Bool.self, forKey: .welcomed)).flatMap { $0 } ?? d.welcomed
         zoom = (try? c.decodeIfPresent(Double.self, forKey: .zoom)).flatMap { $0 } ?? d.zoom
+        splitRatio = (try? c.decodeIfPresent(Double.self, forKey: .splitRatio)).flatMap { $0 } ?? d.splitRatio
         editorFontSize = min(max(editorFontSize, 10), 32)
         zoom = min(max(zoom, 0.6), 2.0)
+        splitRatio = SplitLayout.clampRatio(splitRatio)
     }
 }
 

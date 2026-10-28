@@ -280,4 +280,46 @@ final class EditorPerformanceTests: XCTestCase {
         print("입력 ms: \(times.map { Int($0) }), 통계 ms: \(Int(statsMs)), 글자 수: \(editor.string.utf16.count)")
         XCTAssertLessThan(times.dropFirst().max() ?? 0, 50, "글자 하나 입력이 느립니다")
     }
+
+}
+
+/// 분할 경계 위치 계산과 비율 설정
+final class SplitLayoutTests: XCTestCase {
+
+    func testSplitPositionKeepsRatioAndMinimumWidths() {
+        // 1001px 중 경계선 1px → 쓸 수 있는 폭 1000px
+        XCTAssertEqual(SplitLayout.position(ratio: 0.5, total: 1001, divider: 1), 500)
+        XCTAssertEqual(SplitLayout.position(ratio: 0.3, total: 1001, divider: 1), 300)
+        // 최소 폭(200)보다 좁게는 못 줄인다
+        XCTAssertEqual(SplitLayout.position(ratio: 0.1, total: 1001, divider: 1), 200)
+        XCTAssertEqual(SplitLayout.position(ratio: 0.9, total: 1001, divider: 1), 800)
+        // 두 칸 모두 최소 폭을 지킬 수 없으면 반반
+        XCTAssertEqual(SplitLayout.position(ratio: 0.2, total: 301, divider: 1), 150)
+        // 숫자가 아닌 비율·폭 0
+        XCTAssertEqual(SplitLayout.position(ratio: .nan, total: 1001, divider: 1), 500)
+        XCTAssertEqual(SplitLayout.position(ratio: 0.5, total: 0, divider: 1), 0)
+    }
+
+    func testSplitRatioRoundTripAndClamp() {
+        XCTAssertEqual(SplitLayout.ratio(editorWidth: 300, total: 1001, divider: 1), 0.3, accuracy: 0.0001)
+        XCTAssertEqual(SplitLayout.ratio(editorWidth: 0, total: 1001, divider: 1), 0.1)
+        XCTAssertEqual(SplitLayout.ratio(editorWidth: 300, total: 0, divider: 1), 0.5)
+        XCTAssertEqual(SplitLayout.clampRatio(.infinity), 0.5)
+        XCTAssertEqual(SplitLayout.clampRatio(1.5), 0.9)
+    }
+
+    func testSplitRatioSettingDecoding() throws {
+        // 예전 설정(비율 없음)은 반반, 이상한 값은 허용 범위로
+        let old = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"view":"split"}"#.utf8))
+        XCTAssertEqual(old.splitRatio, 0.5)
+        let weird = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"splitRatio":7}"#.utf8))
+        XCTAssertEqual(weird.splitRatio, 0.9)
+        let bad = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"splitRatio":"넓게","zoom":1.2}"#.utf8))
+        XCTAssertEqual(bad.splitRatio, 0.5)
+        XCTAssertEqual(bad.zoom, 1.2)
+        var s = AppSettings()
+        s.splitRatio = 0.37
+        let back = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(s))
+        XCTAssertEqual(back.splitRatio, 0.37)
+    }
 }

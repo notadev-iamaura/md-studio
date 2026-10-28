@@ -206,6 +206,41 @@ final class TopBar: ColorView {
 
 // MARK: - 서식 도구 막대
 
+/// 가로 막대의 항목을 앞에서부터 들어가는 만큼만 보이고 나머지는 숨긴다.
+/// NSStackView는 좁아지면 버튼을 숨기지 않고 찌그러뜨리므로(“…”), 폭을 직접 재서 정한다.
+/// 끝에 남는 구분선은 함께 숨긴다.
+enum RowFitter {
+    /// - Parameters:
+    ///   - views: 막대 항목(보여 줄 순서)
+    ///   - available: 항목이 쓸 수 있는 폭
+    ///   - spacing: 항목 사이 간격
+    /// - Returns: 보이게 된 항목 수
+    @discardableResult
+    static func fit(_ views: [NSView], available: CGFloat, spacing: CGFloat) -> Int {
+        var used: CGFloat = 0
+        var overflow = false
+        var shown = 0
+        for v in views {
+            let w = max(v.fittingSize.width, 1)
+            let need = shown == 0 ? w : used + spacing + w
+            let show = !overflow && need <= available
+            if show { used = need; shown += 1 } else { overflow = true }
+            setHidden(v, !show)
+        }
+        for v in views.reversed() where !v.isHidden {
+            guard v is NSBox else { break }
+            setHidden(v, true)
+            shown -= 1
+        }
+        return shown
+    }
+
+    /// 값이 바뀔 때만 고친다(레이아웃 중에 같은 값을 다시 넣어 반복 배치가 일어나지 않게).
+    static func setHidden(_ v: NSView, _ hidden: Bool) {
+        if v.isHidden != hidden { v.isHidden = hidden }
+    }
+}
+
 final class FormatBar: ColorView {
     init(run: @escaping (FormatCommand) -> Void) {
         super.init(frame: .zero)
@@ -240,13 +275,12 @@ final class FormatBar: ColorView {
             }
             views.append(b)
         }
+        buttons = views
         let row = NSStackView(views: views)
         row.spacing = 6
         row.edgeInsets = NSEdgeInsets(top: 0, left: 16, bottom: 0, right: 8)
         row.translatesAutoresizingMaskIntoConstraints = false
         row.detachesHiddenViews = true
-        // 좁으면 뒤쪽 버튼부터 숨긴다.
-        for (i, v) in views.enumerated() { row.setVisibilityPriority(.init(Float(1000 - i * 10)), for: v) }
         addSubview(row)
         NSLayoutConstraint.activate([
             row.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -258,6 +292,21 @@ final class FormatBar: ColorView {
         setAccessibilityRole(.toolbar)
         setAccessibilityLabel("서식")
     }
+
+    /// 버튼들 (보이는 순서)
+    private var buttons: [NSView] = []
+
+    /// 좁으면 뒤쪽 버튼부터 숨긴다. 숨긴 명령은 "서식" 메뉴와 단축키로 쓸 수 있다.
+    override func layout() {
+        super.layout()
+        RowFitter.fit(buttons, available: bounds.width - 16 - 8, spacing: 6)
+    }
+
+    /// 지금 보이는 버튼 수 (자가 점검용)
+    var totalItemCount: Int { buttons.filter { !($0 is NSBox) }.count }
+    var visibleItemCount: Int { buttons.filter { !$0.isHidden && !($0 is NSBox) }.count }
+    /// 보이지만 원래 폭보다 찌그러진 버튼 수 (자가 점검용, 0이어야 한다)
+    var compressedItemCount: Int { buttons.filter { !$0.isHidden && $0.frame.width + 1 < $0.fittingSize.width }.count }
 
     required init?(coder: NSCoder) { fatalError("코드에서만 만든다") }
 }
@@ -330,6 +379,11 @@ final class PreviewPane: ColorView {
     var onTab: ((PreviewTab) -> Void)?
     var onTableMode: ((String) -> Void)?
     private let modes: [(String, String)] = [("title", "제목형"), ("inline", "한 줄형"), ("grid", "고정폭 표")]
+    /// 탭 이름: 넓을 때 / 좁을 때
+    private let fullTabLabels = ["문서", "Slack 미리보기", "텍스트 미리보기"]
+    private let shortTabLabels = ["문서", "Slack", "텍스트"]
+    private var fullTabsWidth: CGFloat = 0
+    private let modeLabel = label("표 변환")
 
     override init(frame: NSRect) {
         (scroll, textView) = PreviewTextView.make()
@@ -347,7 +401,7 @@ final class PreviewPane: ColorView {
         tableMode.target = self
         tableMode.action = #selector(modeChanged)
         tableMode.toolTip = "Slack/텍스트로 바꿀 때 표를 어떻게 풀지"
-        let modeLabel = label("표 변환")
+        fullTabsWidth = tabs.fittingSize.width
 
         let header = ColorView()
         header.color = Theme.bg
@@ -356,6 +410,7 @@ final class PreviewPane: ColorView {
         spacer.setContentHuggingPriority(.init(1), for: .horizontal)
         let row = NSStackView(views: [tabs, spacer, modeLabel, tableMode])
         row.spacing = 6
+        row.detachesHiddenViews = true
         row.edgeInsets = NSEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
         row.translatesAutoresizingMaskIntoConstraints = false
         header.addSubview(row)
@@ -380,6 +435,23 @@ final class PreviewPane: ColorView {
     }
 
     required init?(coder: NSCoder) { fatalError("코드에서만 만든다") }
+
+    /// 칸이 좁으면 탭 이름을 줄이고, 그래도 모자라면 "표 변환" 글자 → 표 변환 메뉴 순서로 숨긴다.
+    override func layout() {
+        super.layout()
+        let available = bounds.width - 24
+        let labels = fullTabsWidth + 12 <= available ? fullTabLabels : shortTabLabels
+        for (i, title) in labels.enumerated() where tabs.label(forSegment: i) != title {
+            tabs.setLabel(title, forSegment: i)
+        }
+        // 탭 뒤에 최소 12px 여백을 두고 남은 폭에 표 변환 메뉴와 글자를 넣는다.
+        RowFitter.fit([tableMode, modeLabel], available: available - tabs.fittingSize.width - 12, spacing: 6)
+    }
+
+    /// 지금 탭 이름이 줄어 있는지 (자가 점검용)
+    var isTabLabelShort: Bool { tabs.label(forSegment: 1) == shortTabLabels[1] }
+    var isTableModeVisible: Bool { !tableMode.isHidden }
+    var isTabsCompressed: Bool { tabs.frame.width + 1 < tabs.fittingSize.width }
 
     func setTab(_ tab: PreviewTab) {
         tabs.selectedSegment = [PreviewTab.doc, .slack, .plain].firstIndex(of: tab) ?? 0

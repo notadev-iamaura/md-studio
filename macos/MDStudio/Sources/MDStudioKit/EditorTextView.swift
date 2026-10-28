@@ -117,10 +117,11 @@ public final class EditorTextView: NSTextView, NSTextStorageDelegate {
     }
 
     /// 줄바꿈이 켜져 있으면 글 폭을 화면에 맞추되 최대 900pt(원본 편집기와 같음), 꺼져 있으면 가로로 길게 둔다.
+    /// 칸을 좁혀도 글이 보이는 폭 안에서 줄바꿈되도록 최솟값은 아주 작게(80pt) 둔다.
     private func updateContainerSize() {
         guard let container = textContainer else { return }
         if lineWrap {
-            let width = max(200, min(bounds.width, 900) - textContainerInset.width * 2)
+            let width = max(80, min(bounds.width, 900) - textContainerInset.width * 2)
             if container.size.width != width {
                 container.size = NSSize(width: width, height: CGFloat.greatestFiniteMagnitude)
             }

@@ -146,7 +146,7 @@ public final class MainWindowController: NSWindowController, NSWindowDelegate, E
     private var formatBar: FormatBar!
     private(set) var sidebar: SidebarView!
     private var statusBar: StatusBar!
-    private let split = NSSplitView()
+    private let split = EditorSplitView()
     private var sidebarWidth: NSLayoutConstraint!
     private let editorPane = NSView()
     private(set) var toasts: ToastCenter!
@@ -228,6 +228,8 @@ public final class MainWindowController: NSWindowController, NSWindowDelegate, E
         split.isVertical = true
         split.dividerStyle = .thin
         split.delegate = self
+        split.onDragEnd = { [weak self] in self?.dividerMoved() }
+        split.onDoubleClick = { [weak self] in self?.resetDivider() }
         split.addArrangedSubview(editorPane)
         split.addArrangedSubview(previewPane)
 
@@ -264,15 +266,64 @@ public final class MainWindowController: NSWindowController, NSWindowDelegate, E
     }
 
     public func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
-        proposedMinimumPosition + 240
+        proposedMinimumPosition + SplitLayout.minPane
     }
 
     public func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
-        proposedMaximumPosition - 240
+        proposedMaximumPosition - SplitLayout.minPane
+    }
+
+    /// 1px 경계선은 정확히 잡기 어려우므로 마우스가 잡히는 범위를 양옆으로 넓힌다.
+    public func splitView(_ splitView: NSSplitView, effectiveRect proposedEffectiveRect: NSRect, forDrawnRect drawnRect: NSRect, ofDividerAt dividerIndex: Int) -> NSRect {
+        drawnRect.insetBy(dx: -SplitLayout.grabMargin, dy: 0)
+    }
+
+    /// 창 크기가 바뀔 때: 두 칸이 다 보이면 기억한 비율대로, 아니면 맥 기본 방식대로 나눈다.
+    public func splitView(_ splitView: NSSplitView, resizeSubviewsWithOldSize oldSize: NSSize) {
+        guard isSplitShowingBoth else {
+            splitView.adjustSubviews()
+            return
+        }
+        let total = splitView.bounds.width
+        let height = splitView.bounds.height
+        let thickness = splitView.dividerThickness
+        let pos = SplitLayout.position(ratio: settings.splitRatio, total: total, divider: thickness)
+        editorPane.frame = NSRect(x: 0, y: 0, width: pos, height: height)
+        previewPane.frame = NSRect(x: pos + thickness, y: 0, width: max(0, total - pos - thickness), height: height)
+    }
+
+    private var isSplitShowingBoth: Bool {
+        settings.view == .split && !editorPane.isHidden && !previewPane.isHidden
+    }
+
+    /// 사용자가 경계를 끌어 놓았을 때: 비율을 기억하고 저장한다.
+    private func dividerMoved() {
+        guard isSplitShowingBoth else { return }
+        let ratio = SplitLayout.ratio(editorWidth: editorPane.frame.width, total: split.bounds.width, divider: split.dividerThickness)
+        guard abs(ratio - settings.splitRatio) > 0.0005 else { return }
+        settings.splitRatio = ratio
+        persistSettings()
+        appLog.info("화면", "분할 경계 이동", ["ratio": String(format: "%.3f", ratio)])
+    }
+
+    /// 경계를 두 번 누르면 반반으로 되돌린다.
+    func resetDivider() {
+        settings.splitRatio = 0.5
+        persistSettings()
+        placeDivider()
+        appLog.info("화면", "분할 경계를 가운데로 되돌림")
+    }
+
+    /// 기억한 비율대로 경계를 놓는다.
+    private func placeDivider() {
+        guard isSplitShowingBoth else { return }
+        let pos = SplitLayout.position(ratio: settings.splitRatio, total: split.bounds.width, divider: split.dividerThickness)
+        split.setPosition(pos, ofDividerAt: 0)
     }
 
     /// 보기 모드와 파일 목록 표시 여부에 맞춰 칸을 숨기고 나눈다.
     /// 숨긴 칸 옆의 경계 위치를 바꾸면 맥이 그 칸을 다시 보여 주므로, 둘 다 보일 때만 위치를 정한다.
+    /// 경계는 반반이 아니라 사용자가 끌어 놓은 비율(settings.splitRatio)로 되살린다.
     private func applyLayout() {
         sidebar.isHidden = !settings.sidebar
         sidebarWidth.constant = settings.sidebar ? 240 : 0
@@ -280,10 +331,7 @@ public final class MainWindowController: NSWindowController, NSWindowDelegate, E
         previewPane.isHidden = settings.view == .edit
         root.layoutSubtreeIfNeeded()
         split.adjustSubviews()
-        if settings.view == .split {
-            let half = (split.bounds.width - split.dividerThickness) / 2
-            split.setPosition(half, ofDividerAt: 0)
-        }
+        placeDivider()
     }
 
     // MARK: - 시작
@@ -1013,6 +1061,9 @@ public final class MainWindowController: NSWindowController, NSWindowDelegate, E
     // MARK: - 자가 점검용 읽기 창구
 
     var isEditorPaneVisible: Bool { !editorPane.isHidden }
+    var splitView: NSSplitView { split }
+    var formatBarView: FormatBar { formatBar }
+    var editorPaneWidth: CGFloat { editorPane.frame.width }
     var isPreviewPaneVisible: Bool { !previewPane.isHidden }
     var isSidebarVisible: Bool { !sidebar.isHidden }
     var statusSaveText: String { statusBar.save.stringValue }

@@ -159,6 +159,28 @@ public enum SelfTest {
         }
     }
 
+    /// 분할 경계를 실제 마우스 이벤트로 끈다. grabOffset은 경계 한가운데에서 벗어난 거리(사람 손이 정확하지 않은 것 흉내).
+    static func dragDivider(_ main: MainWindowController, grabOffset: CGFloat, by dx: CGFloat, clicks: Int = 1) {
+        guard let window = main.window else { return }
+        let split = main.splitView
+        split.layoutSubtreeIfNeeded()
+        let dividerX = split.arrangedSubviews[0].frame.maxX + split.dividerThickness / 2
+        let start = split.convert(NSPoint(x: dividerX + grabOffset, y: split.bounds.midY), to: nil)
+        func event(_ type: NSEvent.EventType, _ x: CGFloat) -> NSEvent? {
+            NSEvent.mouseEvent(with: type, location: NSPoint(x: x, y: start.y), modifierFlags: [],
+                               timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                               context: nil, eventNumber: 0, clickCount: clicks, pressure: type == .leftMouseUp ? 0 : 1)
+        }
+        // 끄는 동안의 이벤트를 먼저 대기열에 넣고, 누르기 이벤트를 창에 보낸다.
+        // 경계가 눌리면 NSSplitView가 대기열에서 끌기·떼기 이벤트를 꺼내 처리한다.
+        if dx != 0 {
+            for i in 1...6 { if let e = event(.leftMouseDragged, start.x + dx * CGFloat(i) / 6) { NSApp.postEvent(e, atStart: false) } }
+        }
+        if let up = event(.leftMouseUp, start.x + dx) { NSApp.postEvent(up, atStart: false) }
+        if let down = event(.leftMouseDown, start.x) { window.sendEvent(down) }
+        pump(0.15)
+    }
+
     static func setEditor(_ main: MainWindowController, _ text: String) {
         main.editor.setText(text, keepHistory: true)
         main.editor.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
@@ -607,6 +629,68 @@ public enum SelfTest {
             metrics["bigDocPreviewMs"] = String(format: "%.0f", previewMs)
             try check(typeMs < 50, "글자 하나 입력이 느립니다: \(Int(typeMs))ms")
             return "불러오기 \(Int(setMs))ms, 입력 \(Int(typeMs))ms, 미리보기 \(Int(previewMs))ms"
+        }
+
+        step("분할 경계: 마우스로 끌어 폭 조절, 설정·보기 전환·창 크기 변경 뒤에도 유지, 두 번 누르면 반반") {
+            main.window?.setFrame(NSRect(x: 80, y: 80, width: 1360, height: 860), display: true)
+            main.setView(.split)
+            main.resetDivider()
+            pump(0.2)
+            let total = main.splitView.bounds.width
+            let half = main.editorPaneWidth
+            // 1px 경계선에서 3px 벗어난 곳을 잡아도 끌려야 한다.
+            dragDivider(main, grabOffset: 3, by: -180)
+            let dragged = main.editorPaneWidth
+            try check(abs(dragged - (half - 180)) <= 2, "경계를 잡아 끌 수 없습니다: \(Int(half)) → \(Int(dragged))")
+            try check(abs(main.settings.splitRatio - Double(dragged / (total - main.splitView.dividerThickness))) < 0.01, "끌어 놓은 비율이 기억되지 않았습니다: \(main.settings.splitRatio)")
+            try check(main.env.settingsStore.load().splitRatio == main.settings.splitRatio, "비율이 설정 파일에 저장되지 않았습니다")
+
+            main.changeSetting { $0.syncScroll.toggle() }
+            main.changeSetting { $0.syncScroll.toggle() }
+            pump(0.1)
+            try check(abs(main.editorPaneWidth - dragged) <= 1, "설정을 바꾸자 경계가 돌아갔습니다: \(Int(main.editorPaneWidth))")
+
+            main.setView(.edit); pump(0.1)
+            main.setView(.split); pump(0.1)
+            try check(abs(main.editorPaneWidth - dragged) <= 1, "보기를 바꾸자 경계가 돌아갔습니다: \(Int(main.editorPaneWidth))")
+
+            main.changeSetting { $0.sidebar = false }; pump(0.1)
+            let wideRatio = Double(main.editorPaneWidth / (main.splitView.bounds.width - main.splitView.dividerThickness))
+            try check(abs(wideRatio - main.settings.splitRatio) < 0.01, "파일 목록을 숨기자 비율이 바뀌었습니다: \(wideRatio)")
+            main.changeSetting { $0.sidebar = true }; pump(0.1)
+
+            main.window?.setFrame(NSRect(x: 80, y: 80, width: 1100, height: 860), display: true); pump(0.2)
+            let resizedRatio = Double(main.editorPaneWidth / (main.splitView.bounds.width - main.splitView.dividerThickness))
+            try check(abs(resizedRatio - main.settings.splitRatio) < 0.01, "창 크기를 바꾸자 비율이 바뀌었습니다: \(resizedRatio)")
+            main.window?.setFrame(NSRect(x: 80, y: 80, width: 1360, height: 860), display: true); pump(0.2)
+            try check(abs(main.editorPaneWidth - dragged) <= 2, "창을 되돌렸는데 경계가 제자리가 아닙니다: \(Int(main.editorPaneWidth))")
+            screenshot(main, "08-분할경계-끌기")
+
+            // 끝까지 끌어도 한쪽 칸은 최소 폭을 지킨다.
+            let fullButtons = main.formatBarView.totalItemCount
+            dragDivider(main, grabOffset: 0, by: -2000)
+            try check(abs(main.editorPaneWidth - SplitLayout.minPane) <= 1, "편집기 최소 폭이 지켜지지 않습니다: \(Int(main.editorPaneWidth))")
+            // 좁은 칸에서도 서식 버튼은 찌그러지지 않고 뒤에서부터 숨는다.
+            let narrowButtons = main.formatBarView.visibleItemCount
+            screenshot(main, "10-분할경계-편집기최소")
+            try check(narrowButtons >= 3 && narrowButtons < fullButtons, "좁은 칸의 서식 버튼 수가 이상합니다: \(narrowButtons)/\(fullButtons)")
+            try check(main.formatBarView.compressedItemCount == 0, "서식 버튼이 찌그러졌습니다: \(main.formatBarView.compressedItemCount)개")
+            let textWidth = (main.editor.textContainer?.size.width ?? 0) + main.editor.textContainerInset.width * 2
+            try check(textWidth <= main.editor.enclosingScrollView!.contentSize.width + 1, "좁은 편집기에서 글이 오른쪽으로 잘립니다: 글 \(Int(textWidth)) / 칸 \(Int(main.editor.enclosingScrollView!.contentSize.width))")
+            try check(!main.previewPane.isTabLabelShort && main.previewPane.isTableModeVisible, "넓은 미리보기에서 탭 이름이 줄었거나 표 변환 메뉴가 숨었습니다")
+            dragDivider(main, grabOffset: 0, by: 3000)
+            let previewWidth = main.splitView.bounds.width - main.editorPaneWidth - main.splitView.dividerThickness
+            try check(abs(previewWidth - SplitLayout.minPane) <= 1, "미리보기 최소 폭이 지켜지지 않습니다: \(Int(previewWidth))")
+            try check(main.previewPane.isTabLabelShort && !main.previewPane.isTabsCompressed, "좁은 미리보기에서 탭이 잘립니다")
+            try check(main.formatBarView.visibleItemCount == fullButtons && main.formatBarView.compressedItemCount == 0, "넓어진 편집기에서 서식 버튼이 다시 다 보이지 않습니다: \(main.formatBarView.visibleItemCount)/\(fullButtons), 찌그러짐 \(main.formatBarView.compressedItemCount), 편집기 \(Int(main.editorPaneWidth)), 막대 \(Int(main.formatBarView.frame.width))")
+            screenshot(main, "09-분할경계-미리보기최소")
+
+            // 두 번 누르면 반반
+            dragDivider(main, grabOffset: -3, by: 0, clicks: 2)
+            try check(abs(main.editorPaneWidth - half) <= 1, "두 번 눌러도 반반으로 돌아가지 않습니다: \(Int(main.editorPaneWidth))")
+            try check(main.settings.splitRatio == 0.5, "되돌린 비율이 저장되지 않았습니다")
+            try check(!main.previewPane.isTabLabelShort, "반반으로 돌아왔는데 탭 이름이 줄어 있습니다")
+            return "반반 \(Int(half))px → 끌기 \(Int(dragged))px, 최소 폭 \(Int(SplitLayout.minPane))px, 좁은 칸 서식 버튼 \(narrowButtons)/\(fullButtons)개"
         }
 
         step("화면 오류·예상하지 못한 질문이 없다") {

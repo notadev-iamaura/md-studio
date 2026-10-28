@@ -20,7 +20,7 @@
 - `node test/make-golden.mjs`: 변환 정답 데이터(`test/fixtures/golden.json`) 갱신. 변환 규칙을 바꿨을 때만 실행
 - `cd macos/MDCore && swift test`: Swift 변환 엔진 정답 대조(21개 사례 × 8종). `MDCORE_GOLDEN=<경로>`를 주면 다른 정답 파일로 대조
 - `cd macos/MDStudio && swift test`: Swift 앱 기능 단위 테스트. `MDSTUDIO_SNAPSHOT_DIR=<폴더>`를 주면 미리보기를 PNG로 저장(디자인 확인용)
-- `bash macos/scripts/build-app.sh [--selftest]`: Swift 앱 만들기(공용 빌드·자체 서명·zip). `--selftest`는 실제 창으로 24개 흐름 자동 점검
+- `bash macos/scripts/build-app.sh [--selftest]`: Swift 앱 만들기(공용 빌드·자체 서명·zip). `--selftest`는 실제 창으로 25개 흐름 자동 점검
 - 메모리 측정: 앱을 연 뒤 `footprint <pid>` (목표: 문서 1개 기준 60MB 이하, 현재 45MB)
 
 ## 규칙
