@@ -113,13 +113,14 @@ Safari에서도 편집, 미리보기, 복사, 내보내기는 모두 동작합�
 
 | 항목 | Electron 버전 | Swift 버전 (실측) |
 |---|---|---|
-| 앱 크기 | 310MB | 6.4MB (Apple Silicon·Intel 공용) |
+| 앱 크기 | 310MB | 6.5MB (Apple Silicon·Intel 공용), `--slim`이면 2.2MB |
 | 메모리 (예제 문서 1개, 분할 보기) | 150~300MB (추정) | 45MB (`footprint` 명령, 최고 45.7MB) |
 
 **만들기와 설치**
 1. Xcode가 설치되어 있어야 합니다. 저장소 폴더에서 `bash macos/scripts/build-app.sh`를 실행합니다.
 2. `macos/build/MD Studio.app`이 생깁니다. 응용 프로그램 폴더로 옮기면 됩니다. 이 맥에서 직접 만든 앱이라 "확인되지 않은 개발자" 경고가 뜨지 않습니다. 다른 맥으로 보낼 때는 `macos/build/MD-Studio-2.0.0-mac.zip`을 쓰고, 받는 쪽은 위의 "그래도 열기" 순서를 따릅니다.
 3. Electron 버전과 따로 설치됩니다(앱 식별자 `local.mdstudio.native`). 설정과 임시본도 따로 보관합니다.
+4. 자기 맥에서만 쓸 거라면 `bash macos/scripts/build-app.sh --slim`으로 더 작게 만들 수 있습니다. 이 맥의 칩 전용으로만 빌드하고 디버그용 이름표(심볼)를 지워서 앱이 2.2MB, zip이 약 0.9MB가 됩니다(기본은 6.5MB, zip 2.2MB). 대신 다른 종류의 칩을 쓰는 맥(Apple Silicon과 Intel)에서는 열리지 않고, zip 이름 끝에 칩 이름(`-arm64` 등)이 붙습니다. 실행 중 메모리는 거의 같습니다. `--slim --selftest`처럼 함께 쓸 수 있습니다.
 
 **자동 확인**: `bash macos/scripts/build-app.sh --selftest`를 실행하면 앱을 만든 뒤 실제 창을 띄워 25개 흐름(폴더 열기, 저장, 자동 저장, 임시본 복구, 외부 변경, 복사 4종, 붙여넣기 변환, HTML·PDF 내보내기, 단축키, 다크 모드, 긴 문서, 분할 경계 끌기 등)을 사람 없이 실행합니다. 결과와 화면 사진은 `macos/build/selftest/`에 남습니다. 점검하는 동안 앱 창이 30초쯤 떴다가 닫힙니다.
 
@@ -146,7 +147,7 @@ npm run package:app  # 맥 앱 생성 → release/MD-Studio-<버전>-mac-*.zip (
 node test/make-golden.mjs  # 변환 정답 데이터 갱신 (다른 언어 구현과 대조용)
 cd macos/MDCore && swift test  # Swift 변환 엔진을 정답 데이터와 대조 (Xcode 필요)
 cd macos/MDStudio && swift test  # Swift 앱 기능 단위 테스트
-bash macos/scripts/build-app.sh --selftest  # Swift 앱 만들기 + 실제 창 자동 점검
+bash macos/scripts/build-app.sh --selftest  # Swift 앱 만들기 + 실제 창 자동 점검 (--slim: 이 맥 칩 전용 작은 앱)
 ```
 
 구조:
